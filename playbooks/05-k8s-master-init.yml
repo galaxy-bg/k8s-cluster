@@ -1,0 +1,44 @@
+- hosts: masters
+  become: yes
+  tasks:
+
+#    - name: Check if k8s cluster is running
+#      shell: kubectl cluster-info
+
+#      register: k8scls
+
+#    - name: Display all variables/facts...
+#      debug:
+#        var: k8scls
+
+    - name: k8s cluster initilization
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16 > k8s_init.log
+      args:
+        chdir: /root/
+        creates: k8s_init.log
+      
+#      when: (k8scls.stdout not in "is running at") 
+
+    - name: create .kube directory
+      become: yes
+      file:
+        path: /root/.kube
+        state: directory
+        mode: 0755
+
+    - name: copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: yes
+        owner: root
+
+    - name: install Pod network
+      become: yes
+      shell: kubectl apply -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml > pod_network_inst.log
+      args:
+        chdir: /root/
+        creates: pod_network_inst.log
+
+    - name: Running workloads(pods) on the master node
+      shell: kubectl taint nodes --all node-role.kubernetes.io/master-

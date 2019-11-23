@@ -1,0 +1,13 @@
+[control]
+ansible-ws ansible_connection=local
+
+[k8s-cluster:children]
+masters
+workers
+
+[masters]
+k8s-master02
+
+[workers]
+k8s-worker01
+k8s-worker02

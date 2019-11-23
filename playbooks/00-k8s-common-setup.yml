@@ -1,0 +1,95 @@
+- hosts: k8s-cluster
+  become: yes
+  tasks:
+   - name: Stop and Disable Firewalld 
+     systemd:
+       name: firewalld
+       state: stopped
+       enabled: no
+
+   - name: add Dcoker-CE YUM repository
+     yum_repository:
+      name: docker-ce
+      description: Docker CE YUM repository
+      baseurl: https://download.docker.com/linux/centos/7/x86_64/stable
+      gpgkey: https://download.docker.com/linux/centos/gpg
+      gpgcheck: yes
+
+   - name: install Containner Runtime - Docker
+     yum:
+       name: docker-ce
+       state: latest
+
+   - name: Enable and Start Docker service
+     systemd:
+       name: docker
+       state: started
+       enabled: yes
+
+   - name: Disable selinux for k8s-cluster nodes
+     shell: setenforce 0
+
+     register: disable_selinux
+
+     failed_when: (disable_selinux.rc != 0 and disable_selinux.stdout not in "SELinux is disabled")
+
+
+   - name: disable SELinux on reboot
+     selinux:
+       state: disabled
+
+   - name: ensure net.bridge.bridge-nf-call-ip6tables is set to 1
+     sysctl:
+      name: net.bridge.bridge-nf-call-ip6tables
+      value: 1
+      state: present
+
+   - name: ensure net.bridge.bridge-nf-call-iptables is set to 1
+     sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: 1
+      state: present
+
+   - name: Remove swapfile from /etc/fstab
+     mount:
+       name: swap
+       fstype: swap
+       state: absent
+
+   - name: Disable swap
+     command: swapoff -a
+     when: ansible_swaptotal_mb > 0
+
+   - name: add Kubernetes' YUM repository
+     yum_repository:
+      name: Kubernetes
+      description: Kubernetes YUM repository
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      gpgcheck: yes
+
+   - name: install kubelet
+     yum:
+        name: kubelet
+        state: latest
+        update_cache: true
+
+   - name: install kubeadm
+     yum:
+        name: kubeadm
+        state: latest
+
+   - name: start kubelet
+     systemd:
+       name: kubelet
+       enabled: yes
+       state: started
+
+- hosts: masters
+  become: yes
+  tasks:
+   - name: install kubectl
+     yum:
+        name: kubectl
+        state: latest
+#        allow_downgrade: yes
