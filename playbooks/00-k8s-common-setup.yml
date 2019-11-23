@@ -92,4 +92,3 @@
      yum:
         name: kubectl
         state: latest
-#        allow_downgrade: yes
