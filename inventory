@@ -6,7 +6,7 @@ masters
 workers
 
 [masters]
-k8s-master02
+k8s-master01
 
 [workers]
 k8s-worker01
