@@ -1,0 +1,24 @@
+---
+- hosts: k8s-cluster
+  become: no
+  gather_facts: False
+  vars:
+    domain: global.local
+    use_fqdn: True
+  tasks:
+
+#    - name: Assert that domain variable is not empty
+#      assert:
+#        that: not (domain == "" or domain is none)
+#        fail_msg: domain variable is not available.
+#      when: use_fqdn
+
+    - name: set fqdn hostname
+      hostname:
+        name: "{{ inventory_hostname }}.{{ domain }}"
+      when: use_fqdn
+
+    - name: Set shortname (without domain)
+      hostname:
+        name: "{{ inventory_hostname }}"
+      when: not use_fqdn
